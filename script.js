@@ -30,9 +30,11 @@ const gameState = {
     lastDamageTime: 0, // Track when the player was last damaged
     damageInterval: 1000, // Damage interval in milliseconds (1 second)
     gameOver: false,
-    victory: false, // New victory state
-    currentMap: 'forest', // 'forest', 'temple', 'innerTemple', or 'grandRoom'
+    victory: false,
+    currentMap: 'forest', // 'forest', 'temple', 'innerTemple', 'grandRoom', 'jungleBridge', 'templeRuins'
     doorOpen: false, // Whether the door is open (opens on day 2)
+    jungleDoorOpen: false, // Whether the jungle door is open (opens on day 2)
+    jungleTopDoorOpen: false, // Whether the jungle top door is open (opens on day 3)
     innerDoorOpen: false, // Whether the inner temple door is open (opens on day 3)
     grandRoomDoorOpen: false, // Whether the grand room door is open (opens on day 4)
     titanGolem: null // Will store the titan golem boss when in grand room
@@ -200,6 +202,27 @@ function updatePlayer() {
                 generateTempleResources(5);
                 generateTempleEnemies(3);
             }
+            
+            // Check if player is at the jungle door (right side)
+            if (gameState.jungleDoorOpen && 
+                gameState.player.x >= canvas.width - wallThickness - gameState.player.width - 5 && 
+                gameState.player.y + gameState.player.height / 2 >= canvas.height / 2 - doorWidth / 2 && 
+                gameState.player.y + gameState.player.height / 2 <= canvas.height / 2 + doorWidth / 2) {
+                
+                // Switch to jungle bridge map
+                gameState.currentMap = 'jungleBridge';
+                // Position player at the left side of the bridge
+                gameState.player.x = wallThickness + 10;
+                gameState.player.y = canvas.height / 2 - gameState.player.height / 2;
+                
+                // Clear existing enemies and resources
+                gameState.enemies = [];
+                gameState.resources = [];
+                
+                // Generate jungle bridge resources and enemies
+                generateJungleResources(5);
+                generateJungleEnemies(2);
+            }
         } else if (gameState.currentMap === 'temple') {
             // Check if player is at the bottom door (temple map)
             if (gameState.player.y >= canvas.height - wallThickness - gameState.player.height - 5 && 
@@ -301,6 +324,65 @@ function updatePlayer() {
                 // Generate inner temple resources and enemies
                 generateInnerTempleResources(5);
                 generateInnerTempleEnemies(2);
+            }
+        } else if (gameState.currentMap === 'jungleBridge') {
+            // Check if player is at the left door (jungle bridge map)
+            if (gameState.player.x <= wallThickness + 5 && 
+                gameState.player.y + gameState.player.height / 2 >= canvas.height / 2 - doorWidth / 2 && 
+                gameState.player.y + gameState.player.height / 2 <= canvas.height / 2 + doorWidth / 2) {
+                
+                // Switch to forest map
+                gameState.currentMap = 'forest';
+                // Position player at the right side of the forest
+                gameState.player.x = canvas.width - wallThickness - gameState.player.width - 10;
+                gameState.player.y = canvas.height / 2 - gameState.player.height / 2;
+                
+                // Clear existing enemies and resources
+                gameState.enemies = [];
+                gameState.resources = [];
+                
+                // Generate forest resources and enemies
+                generateResources(5);
+                generateEnemies(2);
+            }
+            
+            // Check if player is at the top door (jungle bridge map)
+            if (gameState.jungleTopDoorOpen && 
+                gameState.player.y <= wallThickness + 5 && 
+                gameState.player.x + gameState.player.width / 2 >= canvas.width / 2 - doorWidth / 2 && 
+                gameState.player.x + gameState.player.width / 2 <= canvas.width / 2 + doorWidth / 2) {
+                
+                // Switch to temple ruins
+                gameState.currentMap = 'templeRuins';
+                gameState.player.y = canvas.height - wallThickness - gameState.player.height - 10;
+                gameState.player.x = canvas.width / 2 - gameState.player.width / 2;
+                
+                // Clear existing enemies and resources
+                gameState.enemies = [];
+                gameState.resources = [];
+                
+                // Generate temple ruins resources and enemies
+                generateTempleRuinsResources(5);
+                generateTempleRuinsEnemies(2);
+            }
+        } else if (gameState.currentMap === 'templeRuins') {
+            // Check if player is at the bottom door (temple ruins map)
+            if (gameState.player.y >= canvas.height - wallThickness - gameState.player.height - 5 && 
+                gameState.player.x + gameState.player.width / 2 >= canvas.width / 2 - doorWidth / 2 && 
+                gameState.player.x + gameState.player.width / 2 <= canvas.width / 2 + doorWidth / 2) {
+                
+                // Switch back to jungle bridge
+                gameState.currentMap = 'jungleBridge';
+                gameState.player.y = wallThickness + 10;
+                gameState.player.x = canvas.width / 2 - gameState.player.width / 2;
+                
+                // Clear existing enemies and resources
+                gameState.enemies = [];
+                gameState.resources = [];
+                
+                // Generate jungle bridge resources and enemies
+                generateJungleResources(5);
+                generateJungleEnemies(2);
             }
         }
     }
@@ -706,11 +788,13 @@ function draw() {
     // Check if door should be open (day 2 or later)
     if (gameState.day >= 2) {
         gameState.doorOpen = true;
+        gameState.jungleDoorOpen = true;
     }
     
-    // Check if inner door should be open (day 3 or later)
+    // Check if inner door and jungle top door should be open (day 3 or later)
     if (gameState.day >= 3) {
         gameState.innerDoorOpen = true;
+        gameState.jungleTopDoorOpen = true;
     }
     
     // Check if grand room door should be open (day 4 or later)
@@ -728,7 +812,13 @@ function draw() {
     
     if (gameState.currentMap === 'forest') {
         // Door at the top for forest map
-        ctx.fillRect(doorX, 0, doorWidth, doorHeight);
+        if (gameState.doorOpen) {
+            ctx.fillRect(doorX, 0, doorWidth, doorHeight);
+        }
+        // Jungle door on the right side
+        if (gameState.jungleDoorOpen) {
+            ctx.fillRect(canvas.width - wallThickness, canvas.height / 2 - doorWidth / 2, wallThickness, doorWidth);
+        }
     } else if (gameState.currentMap === 'temple') {
         // Door at the bottom for temple map
         ctx.fillRect(doorX, canvas.height - wallThickness, doorWidth, doorHeight);
@@ -752,6 +842,124 @@ function draw() {
         // Door at the bottom for grand room map
         ctx.fillStyle = '#8B0000';
         ctx.fillRect(doorX, canvas.height - wallThickness, doorWidth, doorHeight);
+    } else if (gameState.currentMap === 'jungleBridge') {
+        // Draw jungle bridge background (dark forest)
+        ctx.fillStyle = '#1A2F1A'; // Dark forest green
+        ctx.fillRect(wallThickness, wallThickness, canvas.width - 2 * wallThickness, canvas.height - 2 * wallThickness);
+        
+        // Draw torches in the forest
+        ctx.fillStyle = '#FFA500'; // Orange for torch light
+        const torchPositions = [
+            {x: 100, y: 100},
+            {x: canvas.width - 100, y: 100},
+            {x: 100, y: canvas.height - 100},
+            {x: canvas.width - 100, y: canvas.height - 100},
+            {x: canvas.width / 2, y: canvas.height / 2}
+        ];
+        
+        torchPositions.forEach(pos => {
+            // Draw torch light radius
+            const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 100);
+            gradient.addColorStop(0, 'rgba(255, 165, 0, 0.8)');
+            gradient.addColorStop(1, 'rgba(26, 47, 26, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 100, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw torch base
+            ctx.fillStyle = '#8B4513'; // Brown for torch base
+            ctx.fillRect(pos.x - 5, pos.y - 5, 10, 20);
+        });
+        
+        // Draw hanging bridge
+        const bridgeWidth = 100;
+        const startX = canvas.width / 2; // Top door position
+        const startY = wallThickness;
+        const endX = wallThickness; // Side door position
+        const endY = canvas.height / 2;
+        
+        // Calculate bridge angle and length
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const angle = Math.atan2(dy, dx);
+        const length = Math.sqrt(dx * dx + dy * dy);
+        
+        // Save context for rotation
+        ctx.save();
+        
+        // Translate to start point and rotate
+        ctx.translate(startX, startY);
+        ctx.rotate(angle);
+        
+        // Draw bridge planks
+        ctx.fillStyle = '#8B4513'; // Brown for bridge
+        const plankSpacing = 20;
+        const numPlanks = Math.floor(length / plankSpacing);
+        
+        for (let i = 0; i < numPlanks; i++) {
+            const y = i * plankSpacing;
+            ctx.fillRect(-bridgeWidth / 2, y, bridgeWidth, 10);
+        }
+        
+        // Draw bridge ropes
+        ctx.strokeStyle = '#654321'; // Dark brown for ropes
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-bridgeWidth / 2 - 10, 0);
+        ctx.lineTo(-bridgeWidth / 2 - 10, length);
+        ctx.moveTo(bridgeWidth / 2 + 10, 0);
+        ctx.lineTo(bridgeWidth / 2 + 10, length);
+        ctx.stroke();
+        
+        // Restore context
+        ctx.restore();
+        
+        // Draw door on the left side
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(0, canvas.height / 2 - doorWidth / 2, wallThickness, doorWidth);
+        
+        // Draw door on the top (if open)
+        if (gameState.jungleTopDoorOpen) {
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(canvas.width / 2 - doorWidth / 2, 0, doorWidth, wallThickness);
+        }
+    } else if (gameState.currentMap === 'templeRuins') {
+        // Draw grass background
+        ctx.fillStyle = '#2E8B57'; // Sea green for grass
+        ctx.fillRect(wallThickness, wallThickness, canvas.width - 2 * wallThickness, canvas.height - 2 * wallThickness);
+        
+        // Draw temple ruins
+        ctx.fillStyle = '#A9A9A9'; // Grey for stone
+        // Draw broken walls
+        ctx.fillRect(canvas.width / 2 - 150, canvas.height / 2 - 100, 300, 20); // Top wall
+        ctx.fillRect(canvas.width / 2 - 150, canvas.height / 2 + 80, 300, 20); // Bottom wall
+        ctx.fillRect(canvas.width / 2 - 150, canvas.height / 2 - 100, 20, 200); // Left wall
+        ctx.fillRect(canvas.width / 2 + 130, canvas.height / 2 - 100, 20, 200); // Right wall
+        
+        // Draw broken pillars
+        const pillarWidth = 30;
+        const pillarHeight = 100;
+        const pillarPositions = [
+            {x: canvas.width / 2 - 120, y: canvas.height / 2 - 50},
+            {x: canvas.width / 2 - 40, y: canvas.height / 2 - 50},
+            {x: canvas.width / 2 + 40, y: canvas.height / 2 - 50},
+            {x: canvas.width / 2 + 120, y: canvas.height / 2 - 50}
+        ];
+        
+        pillarPositions.forEach(pos => {
+            // Draw pillar base
+            ctx.fillStyle = '#A9A9A9';
+            ctx.fillRect(pos.x, pos.y, pillarWidth, pillarHeight);
+            
+            // Draw moss on pillars
+            ctx.fillStyle = '#2E8B57';
+            ctx.fillRect(pos.x + 5, pos.y + 5, pillarWidth - 10, pillarHeight - 10);
+        });
+        
+        // Draw door at the bottom
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(canvas.width / 2 - doorWidth / 2, canvas.height - wallThickness, doorWidth, wallThickness);
     }
     
     // Draw the current map background
@@ -1002,7 +1210,7 @@ function drawGolemGuard(guard) {
         // Restore context state
         ctx.restore();
         
-        // Draw shield health bar if shield has taken damage
+        // Draw shield health bar if damaged
         if (guard.shieldHealth < 10) {
             const shieldHealthPercentage = guard.shieldHealth / 10;
             ctx.fillStyle = 'red';
@@ -1179,3 +1387,97 @@ function init() {
 
 // Start the game
 init();
+
+// Generate jungle bridge resources
+function generateJungleResources(count) {
+    const wallThickness = 20;
+    
+    for (let i = 0; i < count; i++) {
+        // Jungle has more food resources
+        const resourceType = Math.random() < 0.7 ? 
+            resourceTypes.find(r => r.type === 'food') : 
+            resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+        
+        gameState.resources.push({
+            x: wallThickness + Math.random() * (canvas.width - 2 * wallThickness - 20),
+            y: wallThickness + Math.random() * (canvas.height - 2 * wallThickness - 20),
+            width: 20,
+            height: 20,
+            type: resourceType.type,
+            color: resourceType.color,
+            value: resourceType.value
+        });
+    }
+}
+
+// Generate jungle bridge enemies
+function generateJungleEnemies(count) {
+    const wallThickness = 20;
+    
+    for (let i = 0; i < count; i++) {
+        // Jungle has more wolves and bears
+        const enemyType = Math.random() < 0.7 ? 
+            enemyTypes.find(e => e.type === 'wolf') : 
+            enemyTypes.find(e => e.type === 'bear');
+        
+        gameState.enemies.push({
+            x: wallThickness + Math.random() * (canvas.width - 2 * wallThickness - enemyType.width),
+            y: wallThickness + Math.random() * (canvas.height - 2 * wallThickness - enemyType.height),
+            width: enemyType.width,
+            height: enemyType.height,
+            type: enemyType.type,
+            color: enemyType.color,
+            speed: enemyType.speed,
+            damage: enemyType.damage,
+            health: enemyType.health,
+            maxHealth: enemyType.health
+        });
+    }
+}
+
+// Generate temple ruins resources
+function generateTempleRuinsResources(count) {
+    const wallThickness = 20;
+    
+    for (let i = 0; i < count; i++) {
+        // Temple ruins has more medicine and arrows (from the ruins)
+        const resourceType = Math.random() < 0.7 ? 
+            (Math.random() < 0.5 ? resourceTypes.find(r => r.type === 'medicine') : resourceTypes.find(r => r.type === 'arrows')) : 
+            resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+        
+        gameState.resources.push({
+            x: wallThickness + Math.random() * (canvas.width - 2 * wallThickness - 20),
+            y: wallThickness + Math.random() * (canvas.height - 2 * wallThickness - 20),
+            width: 20,
+            height: 20,
+            type: resourceType.type,
+            color: resourceType.color,
+            value: resourceType.value
+        });
+    }
+}
+
+// Generate temple ruins enemies
+function generateTempleRuinsEnemies(count) {
+    const wallThickness = 20;
+    
+    for (let i = 0; i < count; i++) {
+        // Temple ruins has more golems (guarding the ruins)
+        const enemyType = Math.random() < 0.7 ? 
+            enemyTypes.find(e => e.type === 'golem') : 
+            enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+        
+        gameState.enemies.push({
+            x: wallThickness + Math.random() * (canvas.width - 2 * wallThickness - enemyType.width),
+            y: wallThickness + Math.random() * (canvas.height - 2 * wallThickness - enemyType.height),
+            width: enemyType.width,
+            height: enemyType.height,
+            type: enemyType.type,
+            color: enemyType.color,
+            speed: enemyType.speed,
+            damage: enemyType.damage,
+            health: enemyType.health,
+            maxHealth: enemyType.health
+        });
+    }
+}
